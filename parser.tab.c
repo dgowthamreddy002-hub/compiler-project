@@ -72,6 +72,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
+#include <unistd.h>
+#else
+#include <io.h>
+#endif
 
 typedef struct Node Node;
 struct Node {
@@ -91,6 +96,7 @@ typedef struct Symbol {
 static Symbol *symbols;
 static int temp_count;
 static int errors;
+static FILE *tree_file;
 static Node *make_number(int value);
 static Node *make_identifier(char *name);
 static Node *make_binary(char op, Node *left, Node *right);
@@ -100,11 +106,13 @@ static void define_symbol(const char *name);
 static int check_expression(Node *node);
 static char *generate(Node *node);
 static void print_tree(Node *node, int depth);
+static void write_tree_html(Node *node);
 static void free_node(Node *node);
+static void ask_to_open_tree(void);
 void yyerror(const char *message);
 int yylex(void);
 
-#line 108 "parser.tab.c"
+#line 116 "parser.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -537,8 +545,8 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    60,    60,    61,    62,    66,    76,    93,    94,    95,
-      96,    97,    98,    99,   100,   101
+       0,    68,    68,    69,    70,    74,    88,   111,   112,   113,
+     114,   115,   116,   117,   118,   119
 };
 #endif
 
@@ -1110,10 +1118,14 @@ yyreduce:
   switch (yyn)
     {
   case 5: /* statement: expr  */
-#line 66 "parser.y"
+#line 74 "parser.y"
            {
-          puts("Parse tree:");
+          puts("Abstract syntax tree (AST):");
           print_tree((yyvsp[0].node), 1);
+          fputs("<section><h2>Expression</h2><ul>", tree_file);
+          write_tree_html((yyvsp[0].node));
+          fputs("</ul></section>\n", tree_file);
+          fflush(tree_file);
           if (check_expression((yyvsp[0].node))) {
               char *result = generate((yyvsp[0].node));
               printf("Result: %s\n", result);
@@ -1121,16 +1133,22 @@ yyreduce:
           }
           free_node((yyvsp[0].node));
       }
-#line 1125 "parser.tab.c"
+#line 1137 "parser.tab.c"
     break;
 
   case 6: /* statement: IDENTIFIER '=' expr  */
-#line 76 "parser.y"
+#line 88 "parser.y"
                           {
-          puts("Parse tree:");
+          puts("Abstract syntax tree (AST):");
           puts("  Assignment");
           printf("    Identifier: %s\n", (yyvsp[-2].str));
           print_tree((yyvsp[0].node), 2);
+          fputs("<section><h2>Assignment</h2><ul><li>Assign</li><li>Identifier: ", tree_file);
+          fprintf(tree_file, "%s</li><li>Expression", (yyvsp[-2].str));
+          fputs("<ul>", tree_file);
+          write_tree_html((yyvsp[0].node));
+          fputs("</ul></li></ul></section>\n", tree_file);
+          fflush(tree_file);
           if (check_expression((yyvsp[0].node))) {
               char *result = generate((yyvsp[0].node));
               printf("%s = %s\n", (yyvsp[-2].str), result);
@@ -1140,65 +1158,65 @@ yyreduce:
           free((yyvsp[-2].str));
           free_node((yyvsp[0].node));
       }
-#line 1144 "parser.tab.c"
-    break;
-
-  case 7: /* expr: NUMBER  */
-#line 93 "parser.y"
-                             { (yyval.node) = make_number((yyvsp[0].num)); }
-#line 1150 "parser.tab.c"
-    break;
-
-  case 8: /* expr: IDENTIFIER  */
-#line 94 "parser.y"
-                             { (yyval.node) = make_identifier((yyvsp[0].str)); }
-#line 1156 "parser.tab.c"
-    break;
-
-  case 9: /* expr: '(' expr ')'  */
-#line 95 "parser.y"
-                             { (yyval.node) = (yyvsp[-1].node); }
 #line 1162 "parser.tab.c"
     break;
 
-  case 10: /* expr: '-' expr  */
-#line 96 "parser.y"
-                             { (yyval.node) = make_unary('-', (yyvsp[0].node)); }
+  case 7: /* expr: NUMBER  */
+#line 111 "parser.y"
+                             { (yyval.node) = make_number((yyvsp[0].num)); }
 #line 1168 "parser.tab.c"
     break;
 
-  case 11: /* expr: '+' expr  */
-#line 97 "parser.y"
-                             { (yyval.node) = (yyvsp[0].node); }
+  case 8: /* expr: IDENTIFIER  */
+#line 112 "parser.y"
+                             { (yyval.node) = make_identifier((yyvsp[0].str)); }
 #line 1174 "parser.tab.c"
     break;
 
-  case 12: /* expr: expr '+' expr  */
-#line 98 "parser.y"
-                             { (yyval.node) = make_binary('+', (yyvsp[-2].node), (yyvsp[0].node)); }
+  case 9: /* expr: '(' expr ')'  */
+#line 113 "parser.y"
+                             { (yyval.node) = (yyvsp[-1].node); }
 #line 1180 "parser.tab.c"
     break;
 
-  case 13: /* expr: expr '-' expr  */
-#line 99 "parser.y"
-                             { (yyval.node) = make_binary('-', (yyvsp[-2].node), (yyvsp[0].node)); }
+  case 10: /* expr: '-' expr  */
+#line 114 "parser.y"
+                             { (yyval.node) = make_unary('-', (yyvsp[0].node)); }
 #line 1186 "parser.tab.c"
     break;
 
-  case 14: /* expr: expr '*' expr  */
-#line 100 "parser.y"
-                             { (yyval.node) = make_binary('*', (yyvsp[-2].node), (yyvsp[0].node)); }
+  case 11: /* expr: '+' expr  */
+#line 115 "parser.y"
+                             { (yyval.node) = (yyvsp[0].node); }
 #line 1192 "parser.tab.c"
     break;
 
-  case 15: /* expr: expr '/' expr  */
-#line 101 "parser.y"
-                             { (yyval.node) = make_binary('/', (yyvsp[-2].node), (yyvsp[0].node)); }
+  case 12: /* expr: expr '+' expr  */
+#line 116 "parser.y"
+                             { (yyval.node) = make_binary('+', (yyvsp[-2].node), (yyvsp[0].node)); }
 #line 1198 "parser.tab.c"
     break;
 
+  case 13: /* expr: expr '-' expr  */
+#line 117 "parser.y"
+                             { (yyval.node) = make_binary('-', (yyvsp[-2].node), (yyvsp[0].node)); }
+#line 1204 "parser.tab.c"
+    break;
 
-#line 1202 "parser.tab.c"
+  case 14: /* expr: expr '*' expr  */
+#line 118 "parser.y"
+                             { (yyval.node) = make_binary('*', (yyvsp[-2].node), (yyvsp[0].node)); }
+#line 1210 "parser.tab.c"
+    break;
+
+  case 15: /* expr: expr '/' expr  */
+#line 119 "parser.y"
+                             { (yyval.node) = make_binary('/', (yyvsp[-2].node), (yyvsp[0].node)); }
+#line 1216 "parser.tab.c"
+    break;
+
+
+#line 1220 "parser.tab.c"
 
       default: break;
     }
@@ -1391,7 +1409,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 104 "parser.y"
+#line 122 "parser.y"
 
 
 static Node *new_node(int kind) {
@@ -1505,6 +1523,27 @@ static void print_tree(Node *node, int depth) {
     }
 }
 
+static void write_tree_html(Node *node) {
+    fputs("<li>", tree_file);
+    if (node->kind == NODE_NUMBER) {
+        fprintf(tree_file, "Number: %d", node->value);
+    } else if (node->kind == NODE_IDENTIFIER) {
+        fprintf(tree_file, "Identifier: %s", node->name);
+    } else if (node->kind == NODE_UNARY) {
+        fprintf(tree_file, "Unary '%c'", node->op);
+        fputs("<ul>", tree_file);
+        write_tree_html(node->left);
+        fputs("</ul>", tree_file);
+    } else {
+        fprintf(tree_file, "Binary '%c'", node->op);
+        fputs("<ul>", tree_file);
+        write_tree_html(node->left);
+        write_tree_html(node->right);
+        fputs("</ul>", tree_file);
+    }
+    fputs("</li>", tree_file);
+}
+
 static void free_node(Node *node) {
     if (!node) return;
     free_node(node->left);
@@ -1513,13 +1552,60 @@ static void free_node(Node *node) {
     free(node);
 }
 
+static void ask_to_open_tree(void) {
+    FILE *terminal = NULL;
+#ifndef _WIN32
+    terminal = fopen("/dev/tty", "r");
+    if (!terminal && isatty(fileno(stdin))) terminal = stdin;
+#else
+    if (_isatty(_fileno(stdin))) terminal = stdin;
+#endif
+    if (!terminal) return;
+
+    char answer[16];
+    fprintf(stderr, "Open parse_tree.html in your browser? [y/N] ");
+    fflush(stderr);
+    if (!fgets(answer, sizeof(answer), terminal) ||
+        (answer[0] != 'y' && answer[0] != 'Y')) {
+        if (terminal != stdin) fclose(terminal);
+        return;
+    }
+    if (terminal != stdin) fclose(terminal);
+
+#ifdef _WIN32
+    if (system("start \"\" \"parse_tree.html\"") != 0)
+        fprintf(stderr, "Could not open the browser. Open parse_tree.html manually.\n");
+#elif defined(__APPLE__)
+    if (system("open \"parse_tree.html\"") != 0)
+        fprintf(stderr, "Could not open the browser. Open parse_tree.html manually.\n");
+#else
+    int opened = system("xdg-open \"parse_tree.html\" >/dev/null 2>&1");
+    if (opened != 0)
+        opened = system("gio open \"parse_tree.html\" >/dev/null 2>&1");
+    if (opened != 0)
+        opened = system("explorer.exe \"$(wslpath -w \"$PWD/parse_tree.html\")\" >/dev/null 2>&1");
+    if (opened != 0)
+        fprintf(stderr, "Could not open the browser. Try: explorer.exe \"$(wslpath -w parse_tree.html)\"\n");
+#endif
+}
+
 void yyerror(const char *message) {
     fprintf(stderr, "Syntax error: %s\n", message);
     errors++;
 }
 
 int main(void) {
+    tree_file = fopen("parse_tree.html", "w");
+    if (!tree_file) {
+        perror("parse_tree.html");
+        return EXIT_FAILURE;
+    }
+    fputs("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Compiler AST</title><style>body{font:16px system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;background:#f6f8fa;color:#17202a}h1{margin-bottom:4px}section{background:white;border:1px solid #d0d7de;border-radius:10px;padding:16px 22px;margin:20px 0}ul{list-style:none;border-left:2px solid #9aa4b2;margin:8px 0 0 12px;padding:0 0 0 20px}li{position:relative;margin:8px 0}li:before{content:'';position:absolute;left:-22px;top:.7em;width:14px;border-top:2px solid #9aa4b2}</style></head><body><h1>Compiler abstract syntax tree</h1><p>Generated from the parsed input. Parentheses are represented through tree grouping and are not separate AST nodes.</p>", tree_file);
+    fflush(tree_file);
     int parse_status = yyparse();
+    fputs("</body></html>\n", tree_file);
+    fclose(tree_file);
+    ask_to_open_tree();
     while (symbols) {
         Symbol *next = symbols->next;
         free(symbols->name);

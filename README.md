@@ -28,7 +28,9 @@ b
 
 Assignments introduce variables. Referencing a variable before its first successful assignment is a semantic error. Supported operators are unary `+` and `-`, binary `+`, `-`, `*`, `/`, and parentheses. `//` starts a line comment.
 
-The compiler prints TAC as it compiles each line. For the example above, the output includes:
+The compiler prints tokens and an abstract syntax tree (AST) for each line, then prints TAC. The AST shows operator grouping and precedence; it is not a concrete parse tree, so grammar-only details such as parentheses are omitted. Each run also writes an HTML view of the AST to `parse_tree.html` in the current directory. When run from a terminal, the compiler asks whether to open that file in the system browser. Answer `y` to open it; the file is replaced on the next run.
+
+For the example above, TAC includes:
 
 ```text
 t0 = 5 * 2
