@@ -26,9 +26,9 @@ b = (a - 3) / 2
 b
 ```
 
-Assignments introduce variables. Referencing a variable before its first successful assignment is a semantic error. Supported operators are unary `+` and `-`, binary `+`, `-`, `*`, `/`, and parentheses. `//` starts a line comment.
+Assignments introduce variables. Referencing a variable before its first successful assignment is a semantic error. Supported operators are unary `+` and `-`, binary `+`, `-`, `*`, `/`, `%` (integer remainder), and parentheses. Multiplication, division, and remainder share precedence. `//` starts a line comment.
 
-The compiler prints tokens and an abstract syntax tree (AST) for each line, then prints TAC. The AST shows operator grouping and precedence; it is not a concrete parse tree, so grammar-only details such as parentheses are omitted. Each run also writes an HTML view of the AST to `parse_tree.html` in the current directory. When run from a terminal, the compiler asks whether to open that file in the system browser. Answer `y` to open it; the file is replaced on the next run.
+The compiler prints categorized tokens with their lexemes (number, identifier, arithmetic operator, assignment operator, parenthesis, or statement delimiter), then an abstract syntax tree (AST) for each line, followed by TAC. The lexer labels `+` and `-` as arithmetic operators; the parser determines whether they are unary or binary from context. The AST shows operator grouping and precedence; it is not a concrete parse tree, so grammar-only details such as parentheses are omitted. Each run also writes an HTML view of the AST to `parse_tree.html` in the current directory. When run from a terminal, the compiler asks whether to open that file in the system browser. Answer `y` to open it; the file is replaced on the next run.
 
 For the example above, TAC includes:
 

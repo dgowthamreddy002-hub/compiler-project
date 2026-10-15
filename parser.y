@@ -59,7 +59,7 @@ typedef struct Node Node;
 %type <node> expr
 
 %left '+' '-'
-%left '*' '/'
+%left '*' '/' '%'
 %right UMINUS
 
 %%
@@ -117,6 +117,7 @@ expr:
     | expr '-' expr          { $$ = make_binary('-', $1, $3); }
     | expr '*' expr          { $$ = make_binary('*', $1, $3); }
     | expr '/' expr          { $$ = make_binary('/', $1, $3); }
+    | expr '%' expr          { $$ = make_binary('%', $1, $3); }
     ;
 
 %%
