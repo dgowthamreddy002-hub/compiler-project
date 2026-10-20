@@ -1,0 +1,4 @@
+// Demonstrate precedence, parentheses, unary minus, and remainder.
+a = 17 % 5
+b = -(a + 2) * 3
++b

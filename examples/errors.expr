@@ -1,0 +1,15 @@
+// Constant expression evaluates to zero on the right of division.
+bad_division = 6 / (3 - 3)
+bad_remainder = 8 % (2 - 2)
+
+// This variable has not been assigned.
+bad_name = missing + 1
+
+// This malformed statement is reported and skipped.
+broken = 1 +
+
+// An unknown character is reported with its source position.
+bad_character = 3 @ 2
+
+// The compiler continues and compiles this valid statement.
+good = 9 % 4

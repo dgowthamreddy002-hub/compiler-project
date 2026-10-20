@@ -45,9 +45,9 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 46 "parser.y"
+#line 75 "parser.y"
 
-typedef struct Node Node;
+typedef struct ExprValue ExprValue;
 
 #line 53 "parser.tab.h"
 
@@ -63,8 +63,7 @@ typedef struct Node Node;
     NUMBER = 258,                  /* NUMBER  */
     IDENTIFIER = 259,              /* IDENTIFIER  */
     NEWLINE = 260,                 /* NEWLINE  */
-    INVALID = 261,                 /* INVALID  */
-    UMINUS = 262                   /* UMINUS  */
+    INVALID = 261                  /* INVALID  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -73,13 +72,13 @@ typedef struct Node Node;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 50 "parser.y"
+#line 79 "parser.y"
 
     int num;
     char *str;
-    Node *node;
+    ExprValue *expr;
 
-#line 83 "parser.tab.h"
+#line 82 "parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -87,9 +86,23 @@ typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
+/* Location type.  */
+#if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
+typedef struct YYLTYPE YYLTYPE;
+struct YYLTYPE
+{
+  int first_line;
+  int first_column;
+  int last_line;
+  int last_column;
+};
+# define YYLTYPE_IS_DECLARED 1
+# define YYLTYPE_IS_TRIVIAL 1
+#endif
+
 
 extern YYSTYPE yylval;
-
+extern YYLTYPE yylloc;
 
 int yyparse (void);
 

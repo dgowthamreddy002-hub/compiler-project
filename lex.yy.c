@@ -453,8 +453,28 @@ char *yytext;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#line 457 "lex.yy.c"
-#line 458 "lex.yy.c"
+#include <errno.h>
+#include <limits.h>
+static int lexer_line = 1;
+static int lexer_column = 1;
+static int saw_input = 0;
+static int last_character_was_newline = 0;
+static int emitted_final_newline = 0;
+#define YY_USER_ACTION \
+    do { \
+        saw_input = 1; \
+        yylloc.first_line = lexer_line; \
+        yylloc.first_column = lexer_column; \
+        yylloc.last_line = lexer_line; \
+        yylloc.last_column = lexer_column + yyleng; \
+        for (int i = 0; i < yyleng; i++) { \
+            last_character_was_newline = (yytext[i] == '\n'); \
+            if (yytext[i] == '\n') { lexer_line++; lexer_column = 1; } \
+            else lexer_column++; \
+        } \
+    } while (0);
+#line 477 "lex.yy.c"
+#line 478 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -671,9 +691,9 @@ YY_DECL
 		}
 
 	{
-#line 10 "lexer.l"
+#line 30 "lexer.l"
 
-#line 677 "lex.yy.c"
+#line 697 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -732,58 +752,81 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 11 "lexer.l"
-{ yylval.num = (int)strtol(yytext, NULL, 10); printf("TOKEN: NUMBER | Lexeme: %s\n", yytext); return NUMBER; }
+#line 31 "lexer.l"
+{
+                                    errno = 0;
+                                    long value = strtol(yytext, NULL, 10);
+                                    if (errno == ERANGE || value > INT_MAX) {
+                                        fprintf(stderr, "Lexical error at line %d, column %d: integer literal is outside the supported range (0 to %d)\n",
+                                            yylloc.first_line, yylloc.first_column, INT_MAX);
+                                        return INVALID;
+                                    }
+                                    yylval.num = (int)value;
+                                    printf("TOKEN: NUMBER | Lexeme: %s\n", yytext);
+                                    return NUMBER;
+                                }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 12 "lexer.l"
+#line 43 "lexer.l"
 { yylval.str = strdup(yytext); printf("TOKEN: IDENTIFIER | Lexeme: %s\n", yytext); return IDENTIFIER; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 13 "lexer.l"
+#line 44 "lexer.l"
 ;
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 14 "lexer.l"
+#line 45 "lexer.l"
 ;
 	YY_BREAK
 case 5:
 /* rule 5 can match eol */
 YY_RULE_SETUP
-#line 15 "lexer.l"
+#line 46 "lexer.l"
 { puts("TOKEN: STATEMENT_DELIMITER | Lexeme: \\n"); return NEWLINE; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 16 "lexer.l"
+#line 47 "lexer.l"
 { printf("TOKEN: ARITHMETIC_OPERATOR | Lexeme: %s\n", yytext); return yytext[0]; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 17 "lexer.l"
+#line 48 "lexer.l"
 { printf("TOKEN: ASSIGNMENT_OPERATOR | Lexeme: %s\n", yytext); return yytext[0]; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 18 "lexer.l"
+#line 49 "lexer.l"
 { printf("TOKEN: PARENTHESIS | Lexeme: %s\n", yytext); return yytext[0]; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 19 "lexer.l"
-{ fprintf(stderr, "Lexical error: unexpected character '%s'\n", yytext); return INVALID; }
+#line 50 "lexer.l"
+{ fprintf(stderr, "Lexical error at line %d, column %d: unexpected character '%s'\n", yylloc.first_line, yylloc.first_column, yytext); return INVALID; }
+	YY_BREAK
+case YY_STATE_EOF(INITIAL):
+#line 51 "lexer.l"
+{
+                                    if (saw_input && !last_character_was_newline && !emitted_final_newline) {
+                                        emitted_final_newline = 1;
+                                        yylloc.first_line = yylloc.last_line = lexer_line;
+                                        yylloc.first_column = lexer_column;
+                                        yylloc.last_column = lexer_column + 1;
+                                        puts("TOKEN: STATEMENT_DELIMITER | Lexeme: \\n");
+                                        return NEWLINE;
+                                    }
+                                    return 0;
+                                }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 20 "lexer.l"
+#line 62 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 785 "lex.yy.c"
-case YY_STATE_EOF(INITIAL):
-	yyterminate();
+#line 830 "lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -1786,6 +1829,6 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 20 "lexer.l"
+#line 62 "lexer.l"
 
 
